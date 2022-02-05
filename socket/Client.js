@@ -1,10 +1,23 @@
 const { logger } = require('./socket-logger');
-const { AuthResp } = require('./MsgLite');
+const { AuthResp, TextResp } = require('./MsgLite');
+const {DB} = require('../lib/database');
+const dbClient = new DB();
 
+const userCache = new Map();
 
 const onConnect = (socket) => {
     const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
     new Client(clientIp, socket);
+}
+
+const checkEmpty = (...args) => {
+    return args.every((target) => {
+        if (target === undefined || target === null || Number.isNaN(target)) {
+            return false
+        } else {
+            return true;
+        }
+    })
 }
 
 class Client {
@@ -25,7 +38,7 @@ class Client {
                     this.processAuthMsg(msg);
                     break;
                 case 2:
-
+                    this.processTextMsg(msg);
                     break;
             }
         } catch (e) {
@@ -55,6 +68,7 @@ class Client {
     async processAuthMsg(authMsg) {
 
         if (authMsg.token) { // TODO 校验token
+            userCache.set(authMsg.userId, this);
             const authResp = new AuthResp(authMsg.clientNumber);
             this.resp(authResp);
         } else {
@@ -62,16 +76,37 @@ class Client {
             this.resp(authResp);
         }
     }
+    async processTextMsg(textMsg) {
+        const { type, clientNumber, userId, to, content, msgId } = textMsg;
+        if (!checkEmpty(type, clientNumber, userId, to, content, msgId)) {
+            logger.error('Msg has wrong');
+            return;
+        }
+
+        const textResp = new TextResp(clientNumber);
+        this.resp(textResp);
+        const receiver = await dbClient.queryUser(to);
+        const maxMsgVersion = receiver[0].maxMsgId
+        const saveMsg = {
+            msgVersion: maxMsgVersion + 1,
+            type,
+            userId,
+            to,
+            content,
+        }
+
+        await dbClient.insertMsg(saveMsg).catch((err) => {
+            logger.error('insert msg fail', err);
+        });
+        await dbClient.increaseMaxMsgVersion(to);
+        if (userCache.has(to)) {
+            userCache.get(to).socket.send(JSON.stringify(saveMsg));
+        }
+    }
 
 
 }
 
-
-
-
-const handleProcessContentMsg = () => {
-
-}
 
 module.exports = {
     onConnect

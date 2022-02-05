@@ -15,7 +15,14 @@ class AuthResp extends MsgLite{
         }
     }
 }
+class TextResp extends MsgLite{
+
+    constructor(clientNumber) {
+        super(clientNumber);
+    }
+}
 
 module.exports = {
     AuthResp,
+    TextResp,
 }
