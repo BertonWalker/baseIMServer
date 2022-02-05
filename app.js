@@ -6,6 +6,9 @@ var logger = require('morgan');
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/login');
 
+require('./socket');
+
+
 var app = express();
 
 app.all('*', function (req, res, next) {
@@ -15,7 +18,7 @@ app.all('*', function (req, res, next) {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Content-Type', 'application/json;charset=utf-8');
     if (req.method.toLocaleLowerCase() === 'options') {
-        res.send(200)
+        res.sendStatus(200)
     } else {
         next();
     }
