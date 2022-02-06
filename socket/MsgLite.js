@@ -7,12 +7,18 @@ class MsgLite {
 }
 
 class AuthResp extends MsgLite{
-
     constructor(clientNumber, code) {
         super(clientNumber);
         if (Number.isInteger(code)) {
             this.code = code;
         }
+    }
+}
+class FriendListResp extends MsgLite{
+    data = [];
+    constructor(clientNumber, list) {
+        super(clientNumber);
+        this.data = list;
     }
 }
 class TextResp extends MsgLite{
@@ -25,4 +31,5 @@ class TextResp extends MsgLite{
 module.exports = {
     AuthResp,
     TextResp,
+    FriendListResp,
 }

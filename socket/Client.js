@@ -1,5 +1,5 @@
 const { logger } = require('./socket-logger');
-const { AuthResp, TextResp } = require('./MsgLite');
+const { AuthResp, TextResp, FriendListResp } = require('./MsgLite');
 const {DB} = require('../lib/database');
 const dbClient = new DB();
 
@@ -40,6 +40,9 @@ class Client {
                 case 2:
                     this.processTextMsg(msg);
                     break;
+                case 5:
+                    this.processFriend(msg);
+                    break;
             }
         } catch (e) {
             console.log(e);
@@ -69,6 +72,7 @@ class Client {
 
         if (authMsg.token) { // TODO 校验token
             userCache.set(authMsg.userId, this);
+            this.userId = authMsg.userId;
             const authResp = new AuthResp(authMsg.clientNumber);
             this.resp(authResp);
         } else {
@@ -102,6 +106,28 @@ class Client {
         if (userCache.has(to)) {
             userCache.get(to).socket.send(JSON.stringify(saveMsg));
         }
+    }
+
+    async processFriend(msg) {
+        const users = await dbClient.queryFriend();
+        console.log(users);
+        const respList = [];
+        users.forEach((user) =>{
+            if (user.username === this.userId) {
+                return;
+            }
+            const {username, nickName} = user;
+            if(!username) {
+                return;
+            }
+            respList.push({
+                userId: username,
+                nickName,
+            })
+        });
+        const friendListResp = new FriendListResp(msg.clientNumber, respList);
+        this.resp(friendListResp);
+
     }
 
 
