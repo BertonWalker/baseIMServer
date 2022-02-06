@@ -90,8 +90,8 @@ class Client {
         const saveMsg = {
             msgVersion: maxMsgVersion + 1,
             type,
-            userId,
-            to,
+            msgSender: userId,
+            msgReceiver: to,
             content,
         }
 
